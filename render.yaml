@@ -1,20 +1,18 @@
 services:
   - type: web
     name: auto-plate
-    runtime: python
+    runtime: docker
     plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn plate_lookup.web:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/health
     autoDeploy: true
     envVars:
+      - key: CAPTCHA_PROVIDER
+        value: cfsolve
       - key: STORAGE
         value: sqlite
       # El disco de Render free es efímero: la caché se reconstruye con las consultas.
       - key: DB_PATH
         value: /tmp/vehicles.db
-      - key: CAPTCHA_PROVIDER
-        value: site
       - key: CORS_ORIGINS
         value: https://re-3v0lv3d.github.io
       - key: ALLOW_WEB_PROVIDER

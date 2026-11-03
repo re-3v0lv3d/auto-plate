@@ -296,8 +296,10 @@ CFSOLVE_BIN=/ruta/cfsolve/target/release/challenge
 CFSOLVE_PROFILE=/ruta/cfsolve/profiles/safari-26-ios.json
 ```
 
-El token se acepta, pero su backend responde `ERROR_CONEXION` en las búsquedas
-por matrícula. Detalle y pruebas en [`docs/turnstile.md`](docs/turnstile.md).
+Con eso el flujo es automático: matrícula → auto-info + HistorialVehículo
+(propietarios, movimientos, etiqueta, baja) en una sola ficha. La imagen Docker
+compila cfsolve en una etapa aparte. Detalle en
+[`docs/turnstile.md`](docs/turnstile.md).
 
 ## Protección de acceso
 

@@ -28,17 +28,30 @@ export CFSOLVE_PROFILE=/ruta/cfsolve/profiles/safari-26-ios.json
 
 Cada token tarda ~5 s y es de un solo uso.
 
-## El bloqueo real
+## Cadena completa (funciona)
 
-Con token válido, `POST /v2/vehicle/search` responde:
+Con el token de cfsolve:
 
-```json
-{"bastidorItv":"","message":"ERROR_CONEXION"}
+```http
+POST /v2/vehicle/search {"identificationNumber":"6110DMV","token":"1...."}
+-> {"bastidorItv":"73da2aba...","message":""}
+
+GET /v2/vehicle/73da2aba...
+-> 200 con marca, modelo, etiqueta, EURO, transfers
 ```
 
-También con `cf_clearance` obtenido por cfsolve y el mismo User-Agent del perfil.
-Su propia web lo anuncia: *"Las búsquedas por matrícula tienen un coste y las
-limitamos por franja horaria"*.
+Resultado real fusionado con auto-info:
 
-Es decir: el captcha ya no es el problema; el backend no sirve búsquedas por
-matrícula. La única vía automatizada es su API de pago (APIVehículo).
+```
+ALFA ROMEO 147 · 2003 · 13.07.2005 · Diésel · 1910 cc · 100 CV
+propietarios 3 · etiqueta SD · 1 transferencia (05/10/2017, Jaén)
+```
+
+## Límites reales
+
+- Tokens de un solo uso: uno por consulta (~5 s).
+- `WAIT_SEARCH_N`: hay que esperar N segundos entre búsquedas seguidas.
+- `ERROR_CONEXION` aparece en algunas matrículas de forma puntual; reintentar.
+- Matrículas de series N-Z no están soportadas por su backend.
+
+No hay un "bloqueo" que evadir: es captcha + cooldown.

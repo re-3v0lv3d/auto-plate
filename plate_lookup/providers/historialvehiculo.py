@@ -214,6 +214,8 @@ def search_plate(plate: str, token: str) -> dict[str, Any]:
             raise ProviderError("Turnstile rechazado por HistorialVehículo")
         if "TOO_MANY_REQUESTS" in message:
             raise ProviderError("HistorialVehículo: límite de búsquedas por matrícula")
+        if message.startswith("WAIT_SEARCH_"):
+            raise ProviderError(f"HistorialVehículo pide esperar ({message})")
         raise ProviderError(f"HistorialVehículo: {message}")
     return payload
 
@@ -232,7 +234,7 @@ class HistorialVehiculoProvider:
 
         token = captcha_token
         if not token:
-            if solver.provider == "2captcha" and solver.can_solve():
+            if solver.provider in {"2captcha", "cfsolve"} and solver.can_solve():
                 token = solver.solve_turnstile(SITEKEY, SEARCH_URL)
             else:
                 raise CaptchaRequired(SITEKEY, SEARCH_URL, "Turnstile requerido")
