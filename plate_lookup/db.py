@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS vehicles (
     seats             INTEGER,
     status            TEXT,
     owners_count      INTEGER,
+    env_label         TEXT,
     source            TEXT NOT NULL,
     confidence        REAL NOT NULL DEFAULT 0.5,
     complete          INTEGER NOT NULL DEFAULT 0,
@@ -99,6 +100,7 @@ class Vehicle:
     seats: int | None = None
     status: str | None = None
     owners_count: int | None = None
+    env_label: str | None = None
     source: str = "cache"
     confidence: float = 0.5
     complete: bool = False
@@ -140,6 +142,8 @@ def init_db(path: Path | None = None) -> None:
             conn.execute("ALTER TABLE vehicles ADD COLUMN status TEXT")
         if "owners_count" not in cols:
             conn.execute("ALTER TABLE vehicles ADD COLUMN owners_count INTEGER")
+        if "env_label" not in cols:
+            conn.execute("ALTER TABLE vehicles ADD COLUMN env_label TEXT")
 
 
 def get_vehicle(plate_norm: str, country: str) -> Vehicle | None:
@@ -173,6 +177,7 @@ def _row_to_vehicle(row: sqlite3.Row) -> Vehicle:
         seats=row["seats"],
         status=row["status"],
         owners_count=row["owners_count"],
+        env_label=row["env_label"],
         source=row["source"],
         confidence=row["confidence"],
         complete=bool(row["complete"]),
@@ -200,9 +205,9 @@ def upsert_vehicle(vehicle: Vehicle, plate_norm: str) -> Vehicle:
             INSERT INTO vehicles (
                 plate_norm, country, plate_display, make, model, variant, year,
                 first_registration, vin, fuel, engine_cc, power_hp, color, body,
-                doors, seats, status, owners_count, source, confidence, complete, raw_json,
-                created_at, updated_at
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                doors, seats, status, owners_count, env_label, source, confidence, complete,
+                raw_json, created_at, updated_at
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT(plate_norm, country) DO UPDATE SET
                 plate_display=excluded.plate_display,
                 make=COALESCE(excluded.make, vehicles.make),
@@ -220,6 +225,7 @@ def upsert_vehicle(vehicle: Vehicle, plate_norm: str) -> Vehicle:
                 seats=COALESCE(excluded.seats, vehicles.seats),
                 status=COALESCE(excluded.status, vehicles.status),
                 owners_count=COALESCE(excluded.owners_count, vehicles.owners_count),
+                env_label=COALESCE(excluded.env_label, vehicles.env_label),
                 source=excluded.source,
                 confidence=MAX(vehicles.confidence, excluded.confidence),
                 complete=MAX(vehicles.complete, excluded.complete),
@@ -245,6 +251,7 @@ def upsert_vehicle(vehicle: Vehicle, plate_norm: str) -> Vehicle:
                 vehicle.seats,
                 vehicle.status,
                 vehicle.owners_count,
+                vehicle.env_label,
                 vehicle.source,
                 vehicle.confidence,
                 int(vehicle.complete),
@@ -371,6 +378,7 @@ def seed_if_empty(path: Path) -> int:
                     raw.get("seats"),
                     raw.get("status"),
                     raw.get("owners_count"),
+                    raw.get("env_label"),
                     raw.get("source") or "seed",
                     float(raw.get("confidence") or 0.5),
                     int(bool(raw.get("complete"))),
@@ -389,9 +397,9 @@ def seed_if_empty(path: Path) -> int:
             INSERT OR IGNORE INTO vehicles (
                 plate_norm, country, plate_display, make, model, variant, year,
                 first_registration, vin, fuel, engine_cc, power_hp, color, body,
-                doors, seats, status, owners_count, source, confidence, complete, raw_json,
-                created_at, updated_at
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                doors, seats, status, owners_count, env_label, source, confidence, complete,
+                raw_json, created_at, updated_at
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """,
             rows,
         )

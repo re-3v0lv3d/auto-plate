@@ -145,6 +145,29 @@ def lookup(body: LookupRequest, request: Request) -> JSONResponse:
     return JSONResponse(payload)
 
 
+class MergeRequest(BaseModel):
+    plate: str = Field(min_length=1, max_length=20)
+    country: str = Field(default="ES", min_length=2, max_length=2)
+    source_url: str = Field(min_length=8)
+
+
+@app.post("/api/merge")
+def merge(body: MergeRequest, request: Request) -> JSONResponse:
+    ip = request.client.host if request.client else "?"
+    if _rate_limited(ip):
+        raise HTTPException(status_code=429, detail="Demasiadas consultas. Espera un minuto.")
+    try:
+        outcome = service.merge_historial(body.plate, body.country.upper(), body.source_url)
+    except InvalidPlate as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:  # noqa: BLE001 - el proveedor ya lanza ProviderError
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    payload = outcome.to_dict()
+    payload["ok"] = True
+    payload["found"] = outcome.vehicle is not None
+    return JSONResponse(payload)
+
+
 @app.get("/api/vehicle/{plate}")
 def vehicle(plate: str, country: str = Query(default="ES", min_length=2, max_length=2)) -> dict[str, Any]:
     try:

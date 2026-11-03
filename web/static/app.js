@@ -18,10 +18,11 @@ const LABELS = {
   body: "Carrocería",
   doors: "Puertas",
   seats: "Plazas",
-  owners_count: "Titulares",
+  owners_count: "Propietarios",
+  env_label: "Etiqueta DGT",
 };
 
-const state = { config: null, captchaToken: null };
+const state = { config: null, captchaToken: null, lastPlate: null, lastCountry: "ES" };
 
 function authHeaders() {
   const token = sessionStorage.getItem(AUTH_KEY);
@@ -156,6 +157,14 @@ function renderResult(payload) {
       <div class="tags">${tags}</div>
     </div>
     ${cells ? `<dl class="grid">${cells}</dl>` : ""}
+    ${renderMovements(v)}
+    <div class="merge">
+      <p>Fusionar con HistorialVehículo (propietarios, etiqueta ambiental y movimientos):</p>
+      <div class="merge-row">
+        <input id="merge-url" type="text" placeholder="Pega el enlace del informe: historialvehiculo.com/vehiculo/..." />
+        <button type="button" id="merge-btn">Fusionar</button>
+      </div>
+    </div>
     <p class="dgt-note">
       Baja y titulares solo constan en el informe oficial de la DGT.
       <a href="https://sede.dgt.gob.es/es/vehiculos/informacion-de-vehiculos/informe-de-un-vehiculo/"
@@ -163,10 +172,31 @@ function renderResult(payload) {
     </p>`;
 }
 
+function renderMovements(v) {
+  const moves = v?.extra?.historialvehiculo?.movimientos;
+  if (!Array.isArray(moves) || !moves.length) return "";
+  const rows = moves
+    .map(
+      (m) =>
+        `<tr><td>${m.fecha || "—"}</td><td>${m.tipo || "—"}</td><td>${m.localidad || "—"}</td><td>${m.propietario || "—"}</td></tr>`,
+    )
+    .join("");
+  return `
+    <div class="moves">
+      <h4>Movimientos</h4>
+      <table>
+        <thead><tr><th>Fecha</th><th>Tipo</th><th>Localidad</th><th>Propietario</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
 async function submit(plateOverride) {
   const raw = plateOverride ?? $("#plate").value;
   const plate = normalizeInput(raw);
   const country = $("#country").value;
+  state.lastPlate = plate;
+  state.lastCountry = country;
   if (!plate) {
     setMsg("Escribe una matrícula.", "error");
     return;
@@ -298,3 +328,35 @@ $("#logout").addEventListener("click", () => {
 });
 
 start().catch(() => showLogin());
+
+document.addEventListener("click", async (event) => {
+  if (event.target.id !== "merge-btn") return;
+  const input = $("#merge-url");
+  const url = (input?.value || "").trim();
+  if (!url) {
+    setMsg("Pega el enlace del informe de HistorialVehículo.", "warn");
+    return;
+  }
+  const button = event.target;
+  button.disabled = true;
+  button.textContent = "Fusionando…";
+  try {
+    const response = await api("/api/merge", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plate: state.lastPlate, country: state.lastCountry, source_url: url }),
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      setMsg(payload.detail || "No se pudo fusionar.", "error");
+      return;
+    }
+    setMsg("Datos de HistorialVehículo fusionados.", "");
+    renderResult(payload);
+  } catch (err) {
+    if (err.message !== "auth") setMsg("Error fusionando: " + err.message, "error");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Fusionar";
+  }
+});

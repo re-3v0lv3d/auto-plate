@@ -253,6 +253,29 @@ conectas una fuente que los dé, aparecen solos: badge rojo "de baja" y celda
 "Titulares". Mientras no haya fuente, la ficha muestra un enlace al trámite
 oficial de la DGT.
 
+## Fusión con HistorialVehículo
+
+`providers/historialvehiculo.py` añade propietarios, movimientos, etiqueta
+ambiental y datos técnicos desde `api.historialvehiculo.com/v2`.
+
+Su búsqueda por matrícula está protegida con Cloudflare Turnstile, así que el
+flujo es:
+
+1. Buscas la matrícula a mano en historialvehiculo.com (30 s).
+2. Copias la URL del informe (`/vehiculo/<sha256>`).
+3. La pegas en la ficha de auto-plate → **Fusionar**.
+
+El endpoint `GET /v2/vehicle/<sha256>` es libre: no hay captcha al leer una
+ficha concreta, solo para obtener el ID desde la matrícula.
+
+```bash
+curl -u ay:... -X POST localhost:8000/api/merge \
+  -H 'Content-Type: application/json' \
+  -d '{"plate":"1234ABC","country":"ES","source_url":"https://www.historialvehiculo.com/vehiculo/<id>"}'
+```
+
+Detalle completo en [`docs/api-historialvehiculo.md`](docs/api-historialvehiculo.md).
+
 ## Protección de acceso
 
 La API se protege con HTTP Basic si defines `API_USER` y `API_PASSWORD`:

@@ -22,7 +22,7 @@ from .normalize import SUPPORTED_COUNTRIES
 VEHICLE_FIELDS = (
     "make", "model", "variant", "year", "first_registration", "vin", "fuel",
     "engine_cc", "power_hp", "color", "body", "doors", "seats",
-    "status", "owners_count",
+    "status", "owners_count", "env_label",
 )
 
 
@@ -156,6 +156,7 @@ class FirestoreStorage(Storage):
             seats=raw.get("seats"),
             status=raw.get("status"),
             owners_count=raw.get("owners_count"),
+            env_label=raw.get("env_label"),
             source=raw.get("source") or "firestore",
             confidence=float(raw.get("confidence") or 0.5),
             complete=bool(raw.get("complete")),

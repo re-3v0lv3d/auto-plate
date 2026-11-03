@@ -10,6 +10,7 @@ from . import db
 from .config import settings
 from .normalize import InvalidPlate, Plate, normalize_plate
 from .providers.autoinfo_api import AutoInfoApiProvider
+from .providers import historialvehiculo
 from .providers.autoinfo_web import AutoInfoWebProvider
 from .providers.base import CaptchaRequired, ProviderError
 from .store import get_storage
@@ -71,6 +72,7 @@ def _vehicle_from_data(plate: Plate, data: dict[str, Any], source: str) -> db.Ve
         seats=data.get("seats"),
         status=_normalize_status(data.get("status")),
         owners_count=_to_count(data.get("owners_count")),
+        env_label=data.get("env_label"),
         source=source,
         confidence=0.9 if complete else 0.6,
         complete=complete,
@@ -81,7 +83,7 @@ def _vehicle_from_data(plate: Plate, data: dict[str, Any], source: str) -> db.Ve
 _KNOWN_FIELDS = {
     "make", "model", "variant", "year", "first_registration", "vin", "fuel",
     "engine_cc", "power_hp", "color", "body", "doors", "seats",
-    "status", "owners_count",
+    "status", "owners_count", "env_label",
 }
 
 _FUEL_MAP = {
@@ -206,3 +208,37 @@ def lookup(
         sitekey=captcha_error.sitekey if captcha_error else None,
         message=last_error or "No hay datos para esta matrícula",
     )
+
+
+def merge_historial(raw_plate: str, country: str, source: str) -> LookupOutcome:
+    """Fusiona la ficha de HistorialVehículo a partir de su enlace/ID."""
+    plate = normalize_plate(raw_plate, country)
+    info = historialvehiculo.fetch(source)
+    mapped = historialvehiculo.map_vehicle(info)
+
+    storage = get_storage()
+    existing = storage.get_vehicle(plate.normalized, plate.country)
+    extra = dict(existing.extra) if existing else {}
+    extra.update(mapped.pop("extra", {}) or {})
+
+    fields = {
+        key: mapped.get(key)
+        for key in (
+            "make", "model", "variant", "year", "first_registration", "vin",
+            "fuel", "engine_cc", "power_hp", "color", "body", "doors", "seats",
+            "status", "owners_count", "env_label",
+        )
+    }
+    vehicle = db.Vehicle(
+        plate=plate.display,
+        country=plate.country,
+        source="historialvehiculo",
+        confidence=0.95,
+        complete=True,
+        extra=extra,
+        **fields,
+    )
+    vehicle = storage.upsert_vehicle(vehicle, plate.normalized)
+    return LookupOutcome(plate=plate, vehicle=vehicle, cached=False, attempts=[
+        {"provider": "historialvehiculo", "status": "ok", "ms": 0}
+    ])
