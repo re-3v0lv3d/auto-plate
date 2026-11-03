@@ -156,6 +156,7 @@ def lookup(
     raw_plate: str,
     country: str = "ES",
     captcha_token: str | None = None,
+    turnstile_token: str | None = None,
     refresh: bool = False,
 ) -> LookupOutcome:
     plate = normalize_plate(raw_plate, country)
@@ -177,7 +178,8 @@ def lookup(
             continue
         started = time.monotonic()
         try:
-            result = provider.lookup(plate.normalized, plate.country, captcha_token)
+            token = turnstile_token if provider.name == "historialvehiculo" else captcha_token
+            result = provider.lookup(plate.normalized, plate.country, token)
         except CaptchaRequired as exc:
             captcha_error = exc
             attempts.append(

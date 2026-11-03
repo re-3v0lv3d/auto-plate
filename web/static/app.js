@@ -22,7 +22,7 @@ const LABELS = {
   env_label: "Etiqueta DGT",
 };
 
-const state = { config: null, captchaToken: null, lastPlate: null, lastCountry: "ES" };
+const state = { config: null, captchaToken: null, turnstileToken: null, lastPlate: null, lastCountry: "ES" };
 
 function authHeaders() {
   const token = sessionStorage.getItem(AUTH_KEY);
@@ -209,7 +209,13 @@ async function submit(plateOverride) {
     const response = await api("/api/lookup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ plate, country, captcha_token: state.captchaToken, refresh: false }),
+      body: JSON.stringify({
+        plate,
+        country,
+        captcha_token: state.captchaToken,
+        turnstile_token: state.turnstileToken,
+        refresh: false,
+      }),
     });
 
     const payload = await response.json();
@@ -229,6 +235,7 @@ async function submit(plateOverride) {
     setMsg(payload.found ? "" : payload.message || "Sin resultados.", payload.found ? "" : "warn");
     renderResult(payload);
     if (payload.found) saveHistory(payload);
+    resetTurnstile();
   } catch (err) {
     if (err.message !== "auth") setMsg("No se pudo conectar con el servidor.", "error");
   } finally {
@@ -277,11 +284,48 @@ function renderHistory() {
   }
 }
 
+function setupTurnstile() {
+  if (state.config?.historialvehiculo_auto) return; // con 2captcha no hace falta
+  const sitekey = state.config?.historialvehiculo_sitekey;
+  if (!sitekey) return;
+
+  const mount = () => {
+    try {
+      $("#turnstile").classList.remove("hidden");
+      window.turnstile.render("#turnstile", {
+        sitekey,
+        theme: "dark",
+        language: "es",
+        callback: (token) => { state.turnstileToken = token; },
+        "expired-callback": () => { state.turnstileToken = null; },
+        "error-callback": () => { state.turnstileToken = null; },
+      });
+    } catch (err) {
+      console.warn("turnstile:", err);
+    }
+  };
+  if (window.turnstile?.render) {
+    mount();
+    return;
+  }
+  const script = document.createElement("script");
+  script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+  script.async = true;
+  script.onload = mount;
+  document.head.appendChild(script);
+}
+
+function resetTurnstile() {
+  state.turnstileToken = null;
+  try { window.turnstile?.reset("#turnstile"); } catch { /* noop */ }
+}
+
 async function start() {
   await loadConfig();
   hideLogin();
   loadStats();
   renderHistory();
+  setupTurnstile();
 }
 
 $("#search").addEventListener("submit", (event) => {

@@ -70,6 +70,7 @@ class LookupRequest(BaseModel):
     plate: str = Field(min_length=1, max_length=20)
     country: str = Field(default="ES", min_length=2, max_length=2)
     captcha_token: str | None = None
+    turnstile_token: str | None = None
     refresh: bool = False
 
 
@@ -116,6 +117,7 @@ def config() -> dict[str, Any]:
         "pro_api_configured": settings.pro_api_configured,
         "web_provider": settings.allow_web_provider,
         "historialvehiculo_auto": settings.captcha_provider == "2captcha" and settings.captcha_configured,
+        "historialvehiculo_sitekey": "0x4AAAAAAA1fwEz8c6iW2gXh",
     }
 
 
@@ -135,6 +137,7 @@ def lookup(body: LookupRequest, request: Request) -> JSONResponse:
             body.plate,
             body.country.upper(),
             captcha_token=body.captcha_token,
+            turnstile_token=body.turnstile_token,
             refresh=body.refresh,
         )
     except InvalidPlate as exc:

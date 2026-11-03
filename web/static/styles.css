@@ -356,3 +356,6 @@ footer {
 }
 .merge-row button:hover { background: rgba(182,255,61,.08); }
 .merge-row button:disabled { opacity: .6; cursor: progress; }
+
+.turnstile { margin-top: 14px; min-height: 0; }
+.turnstile.hidden { display: none !important; }
