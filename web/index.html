@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Auto-Plate · Identificación por matrícula</title>
+  <meta name="description" content="Consulta directa de datos de vehículo por matrícula. Sin publicidad." />
+  <link rel="stylesheet" href="static/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%230b0f12'/%3E%3Ctext x='50' y='66' font-size='52' text-anchor='middle' fill='%23b6ff3d' font-family='monospace'%3EA%3C/text%3E%3C/svg%3E" />
+</head>
+<body>
+  <div id="login" class="login hidden">
+    <form id="login-form" class="login-card" autocomplete="on">
+      <div class="login-brand"><span class="dot"></span><span>auto<b>plate</b></span></div>
+      <h2>Acceso restringido</h2>
+      <p>Introduce tus credenciales para consultar.</p>
+      <label for="login-user">Usuario</label>
+      <input id="login-user" type="text" autocomplete="username" required />
+      <label for="login-pass">Contraseña</label>
+      <input id="login-pass" type="password" autocomplete="current-password" required />
+      <button type="submit">Entrar</button>
+      <p id="login-error" class="login-error" role="alert"></p>
+    </form>
+  </div>
+
+  <div id="app" class="app hidden">
+    <header class="top">
+      <div class="brand">
+        <span class="dot"></span>
+        <span>auto<b>plate</b></span>
+      </div>
+      <div class="top-meta">
+        <span id="stats" class="stats">—</span>
+        <span class="badge-clean">sin anuncios</span>
+        <button type="button" id="logout" class="logout" title="Cerrar sesión">salir</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <h1>Identifica cualquier coche<br />por su matrícula.</h1>
+        <p class="sub">Marca, modelo, versión, motor, año y VIN. Una consulta, un resultado.</p>
+
+        <form id="search" autocomplete="off">
+          <div class="country">
+            <select id="country" aria-label="País"></select>
+          </div>
+          <div class="plate-wrap">
+            <input id="plate" name="plate" type="text" inputmode="text" spellcheck="false"
+                   placeholder="1234 ABC" aria-label="Matrícula" maxlength="12" required />
+          </div>
+          <button type="submit" id="go">Consultar</button>
+        </form>
+
+        <div id="msg" class="msg" role="status" aria-live="polite"></div>
+
+        <div id="captcha" class="captcha hidden">
+          <p>El proveedor exige captcha y no hay resolvedor configurado. Configura
+          <code>CAPTCHA_PROVIDER=site</code> o <code>2captcha</code> en el servidor.</p>
+        </div>
+      </section>
+
+      <section id="result" class="result hidden" aria-live="polite"></section>
+
+      <section id="history" class="history hidden">
+        <h2>Consultas recientes</h2>
+        <div id="history-list" class="chips"></div>
+      </section>
+    </main>
+
+    <footer>
+      <span>Datos: auto-info.gratis · caché local SQLite</span>
+    </footer>
+  </div>
+
+  <script src="static/config.js"></script>
+  <script src="static/app.js"></script>
+</body>
+</html>

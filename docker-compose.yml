@@ -1,0 +1,12 @@
+services:
+  auto-plate:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      CAPTCHA_PROVIDER: site
+      CORS_ORIGINS: "*"
+      CACHE_TTL_DAYS: "30"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
