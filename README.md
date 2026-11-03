@@ -207,6 +207,23 @@ Alternativa sin tarjeta: **Google Apps Script** (UrlFetchApp + una hoja de
 cálculo como caché) puede hacer de proxy, pero tiene cuotas diarias, tiempos de
 2-5 s y CORS incómodo con POST JSON.
 
+## Protección de acceso
+
+La API se protege con HTTP Basic si defines `API_USER` y `API_PASSWORD`:
+
+```bash
+API_USER=ay API_PASSWORD=yotengoalgo ./run.sh
+```
+
+- Se aplica a todo `/api/*` salvo `/api/health`.
+- El frontend muestra un login y guarda el token en `sessionStorage` (se borra
+  al cerrar la pestaña). No hay credenciales en el código ni en el repo.
+- **Un login en el frontend no es seguridad por sí solo**: si la contraseña
+  viaja en el JS, cualquiera la lee. Aquí la valida el servidor.
+- En GitHub Pages, la UI es pública; lo que queda cerrado son los datos, que
+  solo salen del backend autenticado.
+- Usa siempre HTTPS (Cloud Run lo da; en local, túnel o red de confianza).
+
 ## Almacenamiento: SQLite o Firestore
 
 `STORAGE=sqlite` (por defecto, disco local) o `STORAGE=firestore`.
