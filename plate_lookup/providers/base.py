@@ -5,18 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
+from ..errors import CaptchaRequired, ProviderError
 
-class ProviderError(RuntimeError):
-    """Error recuperable de un proveedor (red, formato, límite...)."""
-
-
-class CaptchaRequired(ProviderError):
-    """El proveedor exige un token de captcha que no tenemos todavía."""
-
-    def __init__(self, sitekey: str, page_url: str, message: str = "Captcha requerido") -> None:
-        super().__init__(message)
-        self.sitekey = sitekey
-        self.page_url = page_url
+__all__ = ["CaptchaRequired", "ProviderError", "ProviderResult", "Provider"]
 
 
 @dataclass(slots=True)

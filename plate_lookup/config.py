@@ -48,6 +48,10 @@ class Settings:
     #  2captcha -> se resuelve en servidor con CAPTCHA_API_KEY
     captcha_provider: str = field(default_factory=lambda: os.getenv("CAPTCHA_PROVIDER", "site").lower())
     captcha_api_key: str = field(default_factory=lambda: os.getenv("CAPTCHA_API_KEY", ""))
+    # cfsolve (solver libre en Rust, sin navegador)
+    cfsolve_bin: str = field(default_factory=lambda: os.getenv("CFSOLVE_BIN", ""))
+    cfsolve_profile: str = field(default_factory=lambda: os.getenv("CFSOLVE_PROFILE", ""))
+    cfsolve_timeout: int = field(default_factory=lambda: _int("CFSOLVE_TIMEOUT", 120))
     captcha_sitekey: str = field(
         default_factory=lambda: os.getenv(
             "CAPTCHA_SITEKEY", "6LedQaYoAAAAAOxmjCgIZNM1ANwQ1sQfvLtYDFhi"
@@ -92,6 +96,8 @@ class Settings:
 
     @property
     def captcha_configured(self) -> bool:
+        if self.captcha_provider == "cfsolve":
+            return bool(self.cfsolve_bin and self.cfsolve_profile)
         if self.captcha_provider in {"site", "manual"}:
             return True
         if self.captcha_provider == "2captcha":

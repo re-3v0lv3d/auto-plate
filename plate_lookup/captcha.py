@@ -10,12 +10,17 @@ Tres modos (`CAPTCHA_PROVIDER`):
 
 from __future__ import annotations
 
+import shutil
+import subprocess
+import tempfile
 import time
 
 import requests
 
 from .config import settings
-from .providers.base import ProviderError
+from pathlib import Path
+
+from .errors import ProviderError
 
 CAPTCHA_BASE = "https://2captcha.com"
 POLL_INTERVAL = 5
@@ -39,12 +44,48 @@ class CaptchaSolver:
         raise ProviderError("No hay resolvedor de captcha configurado")
 
     def solve_turnstile(self, sitekey: str, page_url: str, action: str | None = None) -> str:
-        """Turnstile de Cloudflare (2captcha: method=turnstile)."""
+        """Turnstile de Cloudflare.
+
+        - cfsolve: binario Rust local, gratis, sin navegador ni API de pago.
+        - 2captcha: servicio de pago.
+        """
+        if self.provider == "cfsolve":
+            return self._solve_cfsolve(sitekey, page_url)
         if self.provider != "2captcha":
             raise ProviderError("No hay resolvedor de Turnstile configurado")
         if not settings.captcha_api_key:
             raise ProviderError("CAPTCHA_API_KEY no configurada")
         return self._solve_2captcha(sitekey, page_url, method="turnstile", action=action)
+
+    def _solve_cfsolve(self, sitekey: str, page_url: str) -> str:
+        binary = settings.cfsolve_bin
+        profile = settings.cfsolve_profile
+        if not binary or not profile:
+            raise ProviderError("CFSOLVE_BIN / CFSOLVE_PROFILE no configurados")
+        if not shutil.which(binary) and not Path(binary).exists():
+            raise ProviderError(f"No se encuentra el binario cfsolve: {binary}")
+
+        workdir = tempfile.mkdtemp(prefix="cfsolve-")
+        out_dir = Path(workdir) / "run"
+        try:
+            process = subprocess.run(
+                [
+                    binary, "--page", page_url, str(out_dir), "--solve",
+                    "--fingerprint", profile, "--sitekey", sitekey, "--blank-page",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=settings.cfsolve_timeout,
+            )
+            token = process.stdout.strip().splitlines()[-1] if process.stdout.strip() else ""
+            if process.returncode != 0 or not token.startswith("1."):
+                detail = (process.stderr or "").strip().splitlines()[-1:] or ["sin detalle"]
+                raise ProviderError(f"cfsolve falló: {detail[0]}")
+            return token
+        except subprocess.TimeoutExpired as exc:
+            raise ProviderError("cfsolve agotó el tiempo") from exc
+        finally:
+            shutil.rmtree(workdir, ignore_errors=True)
 
     def _solve_2captcha(
         self, sitekey: str, page_url: str, method: str = "userrecaptcha", action: str | None = None

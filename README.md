@@ -286,6 +286,19 @@ curl -u ay:... -X POST localhost:8000/api/merge \
 
 Detalle completo en [`docs/api-historialvehiculo.md`](docs/api-historialvehiculo.md).
 
+## Turnstile de HistorialVehículo
+
+`CAPTCHA_PROVIDER=cfsolve` usa [cfsolve](https://github.com/chris124567/cfsolve),
+un solver libre en Rust que no necesita navegador (~5 s por token):
+
+```bash
+CFSOLVE_BIN=/ruta/cfsolve/target/release/challenge
+CFSOLVE_PROFILE=/ruta/cfsolve/profiles/safari-26-ios.json
+```
+
+El token se acepta, pero su backend responde `ERROR_CONEXION` en las búsquedas
+por matrícula. Detalle y pruebas en [`docs/turnstile.md`](docs/turnstile.md).
+
 ## Protección de acceso
 
 La API se protege con HTTP Basic si defines `API_USER` y `API_PASSWORD`:
