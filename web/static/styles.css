@@ -359,3 +359,26 @@ footer {
 
 .turnstile { margin-top: 14px; min-height: 0; }
 .turnstile.hidden { display: none !important; }
+
+.hv {
+  margin-top: 34px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 22px;
+}
+.hv h2 { margin: 0 0 8px; font-size: 15px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+.hv p { margin: 0 0 12px; color: var(--muted); font-size: 13px; }
+.hv ol { margin: 0 0 14px; padding-left: 18px; color: var(--text); font-size: 14px; }
+.hv li { margin-bottom: 8px; }
+.hv-hint { color: #55626b; font-size: 12px; margin-left: 8px; }
+.btn-ghost {
+  background: transparent; color: var(--accent); border: 1px solid rgba(182,255,61,.35);
+  border-radius: 10px; padding: 8px 14px; font-weight: 600; cursor: pointer;
+}
+.btn-ghost:hover { background: rgba(182,255,61,.08); }
+.bookmarklet {
+  display: inline-block; margin-left: 8px; padding: 6px 12px;
+  background: var(--accent); color: #0a1200; border-radius: 8px;
+  font-weight: 700; text-decoration: none; font-size: 13px;
+}

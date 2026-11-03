@@ -52,8 +52,6 @@
           <button type="submit" id="go">Consultar</button>
         </form>
 
-        <div id="turnstile" class="turnstile hidden"></div>
-
         <div id="msg" class="msg" role="status" aria-live="polite"></div>
 
         <div id="captcha" class="captcha hidden">
@@ -63,6 +61,23 @@
       </section>
 
       <section id="result" class="result hidden" aria-live="polite"></section>
+
+      <section id="hv" class="hv hidden">
+        <h2>Propietarios, movimientos y etiqueta DGT</h2>
+        <p>HistorialVehículo protege su buscador con Cloudflare y no deja consultarlo desde fuera.
+        Son dos clics:</p>
+        <ol>
+          <li>
+            <button type="button" id="hv-open" class="btn-ghost">Abrir HistorialVehículo</button>
+            <span class="hv-hint">se copia la matrícula al portapapeles</span>
+          </li>
+          <li>Busca allí la matrícula y pulsa el marcador <b>“Enviar a auto-plate”</b>.</li>
+        </ol>
+        <p class="hv-bookmark">
+          Arrastra esto a la barra de marcadores:
+          <a id="hv-bookmarklet" href="#" class="bookmarklet">Enviar a auto-plate</a>
+        </p>
+      </section>
 
       <section id="history" class="history hidden">
         <h2>Consultas recientes</h2>

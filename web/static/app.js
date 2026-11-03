@@ -22,7 +22,7 @@ const LABELS = {
   env_label: "Etiqueta DGT",
 };
 
-const state = { config: null, captchaToken: null, turnstileToken: null, lastPlate: null, lastCountry: "ES" };
+const state = { config: null, captchaToken: null, lastPlate: null, lastCountry: "ES" };
 
 function authHeaders() {
   const token = sessionStorage.getItem(AUTH_KEY);
@@ -213,7 +213,6 @@ async function submit(plateOverride) {
         plate,
         country,
         captcha_token: state.captchaToken,
-        turnstile_token: state.turnstileToken,
         refresh: false,
       }),
     });
@@ -234,8 +233,10 @@ async function submit(plateOverride) {
     $("#captcha").classList.add("hidden");
     setMsg(payload.found ? "" : payload.message || "Sin resultados.", payload.found ? "" : "warn");
     renderResult(payload);
-    if (payload.found) saveHistory(payload);
-    resetTurnstile();
+    if (payload.found) {
+      saveHistory(payload);
+      $("#hv").classList.remove("hidden");
+    }
   } catch (err) {
     if (err.message !== "auth") setMsg("No se pudo conectar con el servidor.", "error");
   } finally {
@@ -284,48 +285,12 @@ function renderHistory() {
   }
 }
 
-function setupTurnstile() {
-  if (state.config?.historialvehiculo_auto) return; // con 2captcha no hace falta
-  const sitekey = state.config?.historialvehiculo_sitekey;
-  if (!sitekey) return;
-
-  const mount = () => {
-    try {
-      $("#turnstile").classList.remove("hidden");
-      window.turnstile.render("#turnstile", {
-        sitekey,
-        theme: "dark",
-        language: "es",
-        callback: (token) => { state.turnstileToken = token; },
-        "expired-callback": () => { state.turnstileToken = null; },
-        "error-callback": () => { state.turnstileToken = null; },
-      });
-    } catch (err) {
-      console.warn("turnstile:", err);
-    }
-  };
-  if (window.turnstile?.render) {
-    mount();
-    return;
-  }
-  const script = document.createElement("script");
-  script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
-  script.async = true;
-  script.onload = mount;
-  document.head.appendChild(script);
-}
-
-function resetTurnstile() {
-  state.turnstileToken = null;
-  try { window.turnstile?.reset("#turnstile"); } catch { /* noop */ }
-}
-
 async function start() {
   await loadConfig();
   hideLogin();
   loadStats();
   renderHistory();
-  setupTurnstile();
+  await handleMergeLink();
 }
 
 $("#search").addEventListener("submit", (event) => {
@@ -404,3 +369,49 @@ document.addEventListener("click", async (event) => {
     button.textContent = "Fusionar";
   }
 });
+
+function buildBookmarklet() {
+  const base = window.location.origin + window.location.pathname;
+  const code =
+    "javascript:(function(){var p=((document.querySelector('#buscador')||{}).value||'').trim()||prompt('Matr&iacute;cula del veh&iacute;culo:');if(!p)return;" +
+    "window.open('" + base + "?merge='+encodeURIComponent(location.href)+'&plate='+encodeURIComponent(p),'_blank');})();";
+  $("#hv-bookmarklet").setAttribute("href", code);
+}
+
+async function handleMergeLink() {
+  const params = new URLSearchParams(window.location.search);
+  const merge = params.get("merge");
+  const plate = params.get("plate");
+  if (!merge || !plate) return;
+
+  history.replaceState({}, "", window.location.pathname);
+  setMsg("Importando el informe de HistorialVehículo…");
+  try {
+    const response = await api("/api/merge", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plate, country: state.lastCountry || "ES", source_url: merge }),
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      setMsg(payload.detail || "No se pudo importar el informe.", "error");
+      return;
+    }
+    setMsg("Informe de HistorialVehículo fusionado.", "");
+    $("#plate").value = prettyPlate(plate, payload.plate.country);
+    renderResult(payload);
+    saveHistory(payload);
+    $("#hv").classList.remove("hidden");
+  } catch (err) {
+    if (err.message !== "auth") setMsg("Error importando: " + err.message, "error");
+  }
+}
+
+$("#hv-open").addEventListener("click", async () => {
+  const plate = normalizeInput($("#plate").value);
+  try { await navigator.clipboard.writeText(plate); } catch { /* sin permiso */ }
+  window.open("https://www.historialvehiculo.com/informes-gratis-vehiculos", "_blank", "noopener");
+  setMsg(plate ? `Matrícula ${plate} copiada. Pégala en HistorialVehículo.` : "Abre HistorialVehículo y busca tu matrícula.");
+});
+
+buildBookmarklet();
