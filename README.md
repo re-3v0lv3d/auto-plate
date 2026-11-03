@@ -113,6 +113,31 @@ Puedes reproducir el descubrimiento de parámetros:
 
 ## Despliegue
 
+### Opción gratis sin tarjeta — Render (recomendada)
+
+Render free: 512 MB, 0.1 CPU, 750 h/mes, sin método de pago. Se duerme a los
+15 min de inactividad; el workflow `keepalive.yml` lo mantiene despierto.
+
+1. https://dashboard.render.com → **New → Blueprint**.
+2. Conecta el repo `re-3v0lv3d/auto-plate`. Render lee `render.yaml`.
+3. Te pedirá `API_USER` y `API_PASSWORD`: pon `ay` y tu contraseña.
+4. Deploy. Te da una URL tipo `https://auto-plate-xxxx.onrender.com`.
+5. GitHub → *Settings → Variables*:
+
+   ```
+   AUTOPLATE_API = https://auto-plate-xxxx.onrender.com
+   ```
+
+6. Relanza el workflow `pages` (*Actions → pages → Run workflow*).
+
+Listo: UI en Pages, API en Render, login validado en servidor.
+
+Notas del plan free:
+
+- Disco efímero: la caché vive mientras el servicio está despierto.
+- Primer arranque tras dormir: ~50 s. El keepalive (cron cada 10 min) lo evita.
+- 750 h/mes cubren 24/7 (720 h). Cloud Run no entra aquí: exige facturación.
+
 ### GitHub Pages: qué se puede y qué no
 
 GitHub Pages **solo sirve ficheros estáticos**. No ejecuta Python, no hay

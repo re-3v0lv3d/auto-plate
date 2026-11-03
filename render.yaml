@@ -5,14 +5,22 @@ services:
     plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn plate_lookup.web:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    autoDeploy: true
     envVars:
       - key: STORAGE
-        value: firestore
+        value: sqlite
+      # El disco de Render free es efímero: la caché se reconstruye con las consultas.
+      - key: DB_PATH
+        value: /tmp/vehicles.db
       - key: CAPTCHA_PROVIDER
         value: site
       - key: CORS_ORIGINS
-        value: "*"
-      # Firestore necesita credenciales: define GOOGLE_APPLICATION_CREDENTIALS
-      # con un service account (roles/datastore.user) o usa Cloud Run.
-      - key: GCP_PROJECT
-        value: tu-proyecto
+        value: https://re-3v0lv3d.github.io
+      - key: ALLOW_WEB_PROVIDER
+        value: "1"
+      # Se piden en el panel al crear el Blueprint (no van en el repo).
+      - key: API_USER
+        sync: false
+      - key: API_PASSWORD
+        sync: false

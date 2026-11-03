@@ -1,0 +1,23 @@
+name: keepalive
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Despertar el backend
+        env:
+          API: ${{ vars.AUTOPLATE_API }}
+        run: |
+          if [ -z "$API" ]; then
+            echo "::notice::AUTOPLATE_API no definida; nada que pingear."
+            exit 0
+          fi
+          curl -fsS --max-time 90 "$API/api/health" && echo "ok"
