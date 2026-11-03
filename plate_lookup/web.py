@@ -22,13 +22,6 @@ from .normalize import InvalidPlate, SUPPORTED_COUNTRIES, normalize_plate
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 
 app = FastAPI(title="Auto-Plate", version="1.0.0", docs_url="/api/docs", redoc_url=None)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origin_list,
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization"],
-)
-
 PUBLIC_PATHS = {"/api/health", "/api/docs", "/openapi.json"}
 
 
@@ -60,6 +53,15 @@ async def basic_auth(request: Request, call_next):
             headers={"WWW-Authenticate": 'Basic realm="auto-plate"'},
         )
     return await call_next(request)
+
+
+# Debe añadirse el último para quedar por fuera y añadir cabeceras también a los 401.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origin_list,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
+)
 app.mount("/static", StaticFiles(directory=WEB_DIR / "static"), name="static")
 
 _hits: dict[str, deque[float]] = {}
