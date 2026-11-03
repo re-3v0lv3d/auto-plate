@@ -48,10 +48,9 @@ async def basic_auth(request: Request, call_next):
         and request.method != "OPTIONS"
         and not _check_basic(request.headers.get("authorization"))
     ):
-        return JSONResponse(
-            {"detail": "Credenciales requeridas"}, status_code=401,
-            headers={"WWW-Authenticate": 'Basic realm="auto-plate"'},
-        )
+        # Sin WWW-Authenticate: evita que el navegador abra el diálogo nativo
+        # y deja que el frontend gestione el login.
+        return JSONResponse({"detail": "Credenciales requeridas"}, status_code=401)
     return await call_next(request)
 
 

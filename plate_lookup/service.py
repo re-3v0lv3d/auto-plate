@@ -69,6 +69,8 @@ def _vehicle_from_data(plate: Plate, data: dict[str, Any], source: str) -> db.Ve
         body=data.get("body"),
         doors=data.get("doors"),
         seats=data.get("seats"),
+        status=_normalize_status(data.get("status")),
+        owners_count=_to_count(data.get("owners_count")),
         source=source,
         confidence=0.9 if complete else 0.6,
         complete=complete,
@@ -79,6 +81,7 @@ def _vehicle_from_data(plate: Plate, data: dict[str, Any], source: str) -> db.Ve
 _KNOWN_FIELDS = {
     "make", "model", "variant", "year", "first_registration", "vin", "fuel",
     "engine_cc", "power_hp", "color", "body", "doors", "seats",
+    "status", "owners_count",
 }
 
 _FUEL_MAP = {
@@ -94,6 +97,25 @@ _FUEL_MAP = {
     "lpg": "GLP",
     "cng": "GNC",
 }
+
+
+def _normalize_status(value: str | None) -> str | None:
+    """Normaliza a 'baja' o 'alta' cuando la fuente lo indica."""
+    if not value:
+        return None
+    text = str(value).strip().lower()
+    if "baja" in text or text in {"si", "sí", "s"}:
+        return "baja"
+    if "alta" in text or "circul" in text or text in {"no", "activo"}:
+        return "alta"
+    return str(value).strip()
+
+
+def _to_count(value: object) -> int | None:
+    if value is None:
+        return None
+    digits = "".join(ch for ch in str(value) if ch.isdigit())
+    return int(digits) if digits else None
 
 
 def _normalize_fuel(value: str | None) -> str | None:

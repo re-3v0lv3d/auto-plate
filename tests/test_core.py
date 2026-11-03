@@ -111,6 +111,23 @@ def test_api_result_mapping_is_flexible():
     assert data == {"make": "OPEL", "model": "Corsa", "year": 2019, "engine_cc": 1199}
 
 
+def test_parse_report_status_and_owners():
+    html = """
+    <table><tbody>
+      <tr><td scope="row">Baja</td><td>Sí, 12.03.2021</td></tr>
+      <tr><td scope="row">Número de titulares</td><td>3</td></tr>
+    </tbody></table>
+    """
+    data = parse_report(html)
+    assert data["status"] == "baja"
+    assert data["owners_count"] == 3
+
+    from plate_lookup.service import _normalize_status
+    assert _normalize_status(data["status"]) == "baja"
+    assert _normalize_status("Alta") == "alta"
+    assert _normalize_status(None) is None
+
+
 def test_db_upsert_does_not_downgrade_complete(tmp_path, monkeypatch):
     from plate_lookup.config import settings
 
@@ -119,7 +136,7 @@ def test_db_upsert_does_not_downgrade_complete(tmp_path, monkeypatch):
 
     complete = db.Vehicle(
         plate="1234 ABC", country="ES", make="SEAT", model="León",
-        year=2019, complete=True, source="test",
+        year=2019, complete=True, source="test", status="baja", owners_count=3,
     )
     db.upsert_vehicle(complete, "1234ABC")
 
@@ -135,3 +152,5 @@ def test_db_upsert_does_not_downgrade_complete(tmp_path, monkeypatch):
     assert stored.model == "León"
     assert stored.complete is True
     assert stored.source == "test"
+    assert stored.status == "baja"
+    assert stored.owners_count == 3

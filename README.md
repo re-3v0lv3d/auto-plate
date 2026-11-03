@@ -232,6 +232,27 @@ Alternativa sin tarjeta: **Google Apps Script** (UrlFetchApp + una hoja de
 cálculo como caché) puede hacer de proxy, pero tiene cuotas diarias, tiempos de
 2-5 s y CORS incómodo con POST JSON.
 
+## Estado (baja) y titulares
+
+El informe gratuito **no** trae estos datos. Lo que existe:
+
+| dato | dónde | coste |
+| --- | --- | --- |
+| baja del vehículo | Informe verificado de auto-info | de pago |
+| baja + ITV + cargas | Informe **reducido** de la DGT | gratis, pero exige **Cl@ve** |
+| titulares (nombre) | Informe completo de la DGT | 8,67 € + datos personales |
+| número de titulares | Informe completo de la DGT | 8,67 € |
+
+auto-info lo dice en su FAQ: *"No publicamos datos personales del propietario"*.
+Publicar titulares en una web abierta sería un problema de RGPD, así que el
+sistema **no** los busca ni los almacena.
+
+El modelo y la UI ya soportan `status` (`baja`/`alta`) y `owners_count`, y el
+parser reconoce las etiquetas (`Baja`, `Número de titulares`). Si algún día
+conectas una fuente que los dé, aparecen solos: badge rojo "de baja" y celda
+"Titulares". Mientras no haya fuente, la ficha muestra un enlace al trámite
+oficial de la DGT.
+
 ## Protección de acceso
 
 La API se protege con HTTP Basic si defines `API_USER` y `API_PASSWORD`:

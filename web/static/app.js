@@ -18,6 +18,7 @@ const LABELS = {
   body: "Carrocería",
   doors: "Puertas",
   seats: "Plazas",
+  owners_count: "Titulares",
 };
 
 const state = { config: null, captchaToken: null };
@@ -128,7 +129,15 @@ function renderResult(payload) {
     })
     .join("");
 
+  const statusTag =
+    v.status === "baja"
+      ? `<span class="tag danger">de baja</span>`
+      : v.status === "alta"
+        ? `<span class="tag ok">en circulación</span>`
+        : "";
+
   const tags = [
+    statusTag,
     v.complete ? `<span class="tag ok">informe completo</span>` : `<span class="tag warn">datos parciales</span>`,
     payload.cached ? `<span class="tag">caché</span>` : `<span class="tag">en vivo</span>`,
     v.source ? `<span class="tag">fuente: ${v.source}</span>` : "",
@@ -146,7 +155,12 @@ function renderResult(payload) {
       </div>
       <div class="tags">${tags}</div>
     </div>
-    ${cells ? `<dl class="grid">${cells}</dl>` : ""}`;
+    ${cells ? `<dl class="grid">${cells}</dl>` : ""}
+    <p class="dgt-note">
+      Baja y titulares solo constan en el informe oficial de la DGT.
+      <a href="https://sede.dgt.gob.es/es/vehiculos/informacion-de-vehiculos/informe-de-un-vehiculo/"
+         target="_blank" rel="noopener">Consultar en la DGT</a>
+    </p>`;
 }
 
 async function submit(plateOverride) {

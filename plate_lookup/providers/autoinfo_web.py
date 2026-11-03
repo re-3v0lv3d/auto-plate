@@ -113,7 +113,12 @@ def parse_report(html: str) -> dict[str, object]:
     pairs = extract_pairs(html)
     for label, value in pairs:
         canon = _canonical_label(label)
-        if canon and canon not in data:
+        if not canon or canon in data:
+            continue
+        # "Baja: Sí, 12.03.2021" -> el estado lo da la etiqueta, no el valor.
+        if canon == "status" and "baja" in label.lower():
+            data[canon] = "baja"
+        else:
             data[canon] = value
 
     for key in list(data):

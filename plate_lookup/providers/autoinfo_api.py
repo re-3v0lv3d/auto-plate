@@ -86,12 +86,18 @@ FIELD_ALIASES: dict[str, str] = {
     "drzwi": "doors", "doors": "doors", "puertas": "doors", "turen": "doors",
     "numero_de_puertas": "doors", "numero_puertas": "doors",
     "miejsca": "seats", "seats": "seats", "plazas": "seats", "sitze": "seats",
+    # estado (baja/alta) y titulares
+    "baja": "status", "fecha_de_baja": "status_date", "estado": "status",
+    "situacion": "status", "situación": "status", "estado_del_vehiculo": "status",
+    "titulares": "owners_count", "numero_de_titulares": "owners_count",
+    "n_de_titulares": "owners_count", "propietarios": "owners_count",
+    "numero_de_propietarios": "owners_count", "historial_de_titulares": "owners_count",
     # país de registro
     "pais_de_registro": "registry_country", "kraj_rejestracji": "registry_country",
     "country_of_registration": "registry_country",
 }
 
-INT_FIELDS = {"year", "engine_cc", "power_hp", "doors", "seats"}
+INT_FIELDS = {"year", "engine_cc", "power_hp", "doors", "seats", "owners_count"}
 
 
 _SPECIAL_LETTERS = str.maketrans(
