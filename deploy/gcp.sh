@@ -3,21 +3,37 @@
 #
 # Requisitos:
 #   - gcloud CLI autenticado (gcloud auth login)
-#   - proyecto con facturación (Blaze). El tramo siempre gratis cubre esto.
+#   - proyecto con facturación ACTIVA (Blaze). El tramo siempre gratis cubre esto.
 #   - firebase CLI (npm i -g firebase-tools) solo para el hosting.
 #
 # Uso:
-#   PROJECT=mi-proyecto ./deploy/gcp.sh
-#   PROJECT=mi-proyecto ./deploy/gcp.sh --with-hosting
+#   PROJECT=mi-proyecto API_USER=ay API_PASSWORD=... ./deploy/gcp.sh
+#   PROJECT=mi-proyecto API_USER=ay API_PASSWORD=... ./deploy/gcp.sh --with-hosting
 set -euo pipefail
 
 : "${PROJECT:?Define PROJECT=tu-proyecto}"
 REGION="${REGION:-europe-west1}"
 SERVICE="${SERVICE:-auto-plate}"
+CORS_ORIGINS="${CORS_ORIGINS:-*}"
 WITH_HOSTING=0
 [[ "${1:-}" == "--with-hosting" ]] && WITH_HOSTING=1
 
+ENV_VARS="STORAGE=firestore,CAPTCHA_PROVIDER=site,CORS_ORIGINS=${CORS_ORIGINS}"
+if [[ -n "${API_USER:-}" && -n "${API_PASSWORD:-}" ]]; then
+  ENV_VARS="${ENV_VARS},API_USER=${API_USER},API_PASSWORD=${API_PASSWORD}"
+else
+  echo "⚠  Sin API_USER/API_PASSWORD la API quedará abierta a cualquiera."
+fi
+
 cd "$(dirname "$0")/.."
+
+echo "==> Habilitando APIs"
+gcloud services enable run.googleapis.com cloudbuild.googleapis.com \
+  artifactregistry.googleapis.com firestore.googleapis.com --project "$PROJECT"
+
+echo "==> Firestore (se ignora si ya existe)"
+gcloud firestore databases create --project "$PROJECT" --location "$REGION" \
+  --type firestore-native 2>/dev/null || echo "   ya existía"
 
 echo "==> Desplegando $SERVICE en Cloud Run ($REGION)"
 gcloud run deploy "$SERVICE" \
@@ -30,16 +46,14 @@ gcloud run deploy "$SERVICE" \
   --timeout 180 \
   --min-instances 0 \
   --max-instances 2 \
-  --set-env-vars "STORAGE=firestore,CAPTCHA_PROVIDER=site,CORS_ORIGINS=*"
+  --set-env-vars "$ENV_VARS"
 
 URL=$(gcloud run services describe "$SERVICE" --project "$PROJECT" --region "$REGION" --format='value(status.url)')
 echo "==> API: $URL"
-echo "==> Recuerda: Firestore en modo Native y el service account con roles/datastore.user"
+echo "==> Siguiente: actualiza la variable AUTOPLATE_API del repo con esa URL"
 
 if [[ "$WITH_HOSTING" == "1" ]]; then
   echo "==> Publicando UI en Firebase Hosting"
   firebase deploy --project "$PROJECT" --only hosting
-  echo "==> Listo. Abre la URL de Hosting (Firebase te la muestra arriba)."
-else
-  echo "==> Para publicar también la UI: ./deploy/gcp.sh --with-hosting"
+  echo "==> Listo."
 fi
