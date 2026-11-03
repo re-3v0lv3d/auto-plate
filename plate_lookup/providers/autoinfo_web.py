@@ -161,9 +161,9 @@ class AutoInfoWebProvider:
         # obtenerlo, no tiene sentido pedir el formulario.
         token = captcha_token
         if not token:
-            if solver.provider == "2captcha":
+            if settings.autoinfo_captcha_mode == "solver" and solver.provider == "2captcha":
                 token = solver.solve(settings.captcha_sitekey, form_url)
-            elif solver.provider == "site":
+            else:
                 token = SITE_PLACEHOLDER_TOKEN
         if not token:
             raise CaptchaRequired(settings.captcha_sitekey, form_url)

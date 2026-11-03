@@ -35,6 +35,10 @@ class Settings:
     autoinfo_pin: str = field(default_factory=lambda: os.getenv("AUTOINFO_PIN", ""))
     autoinfo_access: str = field(default_factory=lambda: os.getenv("AUTOINFO_ACCESS", ""))
     autoinfo_action: str = field(default_factory=lambda: os.getenv("AUTOINFO_ACTION", "check"))
+    # site = replicar petición del navegador (gratis) | solver = 2captcha
+    autoinfo_captcha_mode: str = field(
+        default_factory=lambda: os.getenv("AUTOINFO_CAPTCHA_MODE", "site").lower()
+    )
     autoinfo_timeout: int = field(default_factory=lambda: _int("AUTOINFO_TIMEOUT", 25))
 
     # Captcha: site | manual | 2captcha | none
