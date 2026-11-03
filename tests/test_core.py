@@ -154,3 +154,21 @@ def test_db_upsert_does_not_downgrade_complete(tmp_path, monkeypatch):
     assert stored.source == "test"
     assert stored.status == "baja"
     assert stored.owners_count == 3
+
+
+def test_merge_data_prefers_rich_values():
+    from plate_lookup.service import _merge_data
+
+    base = {"make": "MERCEDES", "model": None, "owners_count": 2, "status": "alta",
+            "extra": {"unmapped": {"a": 1}}}
+    incoming = {"make": "OTRA", "model": "C (205)", "owners_count": 5, "status": "baja",
+                "env_label": "C", "extra": {"historialvehiculo": {"id": "x"}}}
+
+    merged = _merge_data(base, incoming)
+    assert merged["make"] == "MERCEDES"      # no se pisa lo existente
+    assert merged["model"] == "C (205)"      # se rellena el hueco
+    assert merged["owners_count"] == 5       # se queda el mayor
+    assert merged["status"] == "baja"        # baja tiene prioridad
+    assert merged["env_label"] == "C"
+    assert merged["extra"]["unmapped"] == {"a": 1}
+    assert merged["extra"]["historialvehiculo"] == {"id": "x"}

@@ -19,10 +19,13 @@ from typing import Any
 
 import requests
 
+from ..captcha import solver
 from ..config import settings
-from .base import ProviderError
+from .base import CaptchaRequired, ProviderError, ProviderResult
 
 API = "https://api.historialvehiculo.com/v2"
+SITEKEY = "0x4AAAAAAA1fwEz8c6iW2gXh"
+SEARCH_URL = "https://www.historialvehiculo.com/informes-gratis-vehiculos"
 RE_ID = re.compile(r"\b([a-f0-9]{64})\b", re.I)
 
 FUEL = {
@@ -181,3 +184,75 @@ def fetch(vehicle_id: str) -> dict[str, Any]:
     if not info:
         raise ProviderError("HistorialVehículo no devolvió datos del vehículo")
     return info
+
+
+def search_plate(plate: str, token: str) -> dict[str, Any]:
+    """POST /v2/vehicle/search: matrícula + token Turnstile -> id/VIN."""
+    try:
+        response = requests.post(
+            f"{API}/vehicle/search",
+            json={"identificationNumber": plate, "token": token},
+            headers={
+                "User-Agent": "Mozilla/5.0",
+                "Accept": "application/json",
+                "Origin": "https://www.historialvehiculo.com",
+                "Referer": SEARCH_URL,
+            },
+            timeout=settings.autoinfo_timeout,
+        )
+    except requests.RequestException as exc:
+        raise ProviderError(f"No se pudo buscar en HistorialVehículo: {exc}") from exc
+
+    try:
+        payload = response.json()
+    except ValueError as exc:
+        raise ProviderError("Respuesta no JSON en la búsqueda") from exc
+
+    if response.status_code >= 400:
+        message = str(payload.get("error") or payload.get("message") or response.status_code)
+        if "turnstile" in message.lower():
+            raise ProviderError("Turnstile rechazado por HistorialVehículo")
+        if "TOO_MANY_REQUESTS" in message:
+            raise ProviderError("HistorialVehículo: límite de búsquedas por matrícula")
+        raise ProviderError(f"HistorialVehículo: {message}")
+    return payload
+
+
+class HistorialVehiculoProvider:
+    """Flujo completo por matrícula cuando hay resolvedor de Turnstile."""
+
+    name = "historialvehiculo"
+
+    def available(self) -> bool:
+        return True
+
+    def lookup(self, plate: str, country: str, captcha_token: str | None = None) -> ProviderResult:
+        if country != "ES":
+            raise ProviderError("HistorialVehículo solo cubre España")
+
+        token = captcha_token
+        if not token:
+            if solver.provider == "2captcha" and solver.can_solve():
+                token = solver.solve_turnstile(SITEKEY, SEARCH_URL)
+            else:
+                raise CaptchaRequired(SITEKEY, SEARCH_URL, "Turnstile requerido")
+
+        payload = search_plate(plate, token)
+        candidate = payload.get("bastidorItv") or payload.get("id") or ""
+        vehicle_id = extract_id(str(candidate))
+        if not vehicle_id and isinstance(payload.get("data"), dict):
+            vehicle_id = extract_id(str(payload["data"].get("bastidorItvEncrypt") or ""))
+        if not vehicle_id:
+            message = payload.get("message") or "sin datos"
+            raise ProviderError(f"HistorialVehículo no devolvió el ID ({message})")
+
+        info = fetch(vehicle_id)
+        mapped = map_vehicle(info)
+        extra = mapped.pop("extra", {}) or {}
+        return ProviderResult(
+            provider=self.name,
+            found=True,
+            data={**mapped, "extra": extra},
+            raw=info,
+            note=f"id {vehicle_id[:12]}",
+        )

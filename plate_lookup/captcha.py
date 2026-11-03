@@ -38,7 +38,17 @@ class CaptchaSolver:
             return self._solve_2captcha(sitekey, page_url)
         raise ProviderError("No hay resolvedor de captcha configurado")
 
-    def _solve_2captcha(self, sitekey: str, page_url: str) -> str:
+    def solve_turnstile(self, sitekey: str, page_url: str, action: str | None = None) -> str:
+        """Turnstile de Cloudflare (2captcha: method=turnstile)."""
+        if self.provider != "2captcha":
+            raise ProviderError("No hay resolvedor de Turnstile configurado")
+        if not settings.captcha_api_key:
+            raise ProviderError("CAPTCHA_API_KEY no configurada")
+        return self._solve_2captcha(sitekey, page_url, method="turnstile", action=action)
+
+    def _solve_2captcha(
+        self, sitekey: str, page_url: str, method: str = "userrecaptcha", action: str | None = None
+    ) -> str:
         if not settings.captcha_api_key:
             raise ProviderError("CAPTCHA_API_KEY no configurada")
 
@@ -47,10 +57,11 @@ class CaptchaSolver:
                 f"{CAPTCHA_BASE}/in.php",
                 data={
                     "key": settings.captcha_api_key,
-                    "method": "userrecaptcha",
-                    "googlekey": sitekey,
+                    "method": method,
                     "pageurl": page_url,
                     "json": 1,
+                    **({"sitekey" if method == "turnstile" else "googlekey": sitekey}),
+                    **({"action": action} if action else {}),
                 },
                 timeout=20,
             ).json()

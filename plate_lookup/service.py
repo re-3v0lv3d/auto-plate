@@ -12,10 +12,11 @@ from .normalize import InvalidPlate, Plate, normalize_plate
 from .providers.autoinfo_api import AutoInfoApiProvider
 from .providers import historialvehiculo
 from .providers.autoinfo_web import AutoInfoWebProvider
+from .providers.historialvehiculo import HistorialVehiculoProvider
 from .providers.base import CaptchaRequired, ProviderError
 from .store import get_storage
 
-PROVIDERS = [AutoInfoApiProvider(), AutoInfoWebProvider()]
+PROVIDERS = [AutoInfoApiProvider(), AutoInfoWebProvider(), HistorialVehiculoProvider()]
 
 # Campos que indican que la ficha es un informe real y no solo un listado.
 STRONG_FIELDS = ("vin", "year", "first_registration", "engine_cc", "power_hp", "fuel")
@@ -52,8 +53,14 @@ def _is_fresh(vehicle: db.Vehicle) -> bool:
     return age < settings.cache_ttl_days * 86400
 
 
-def _vehicle_from_data(plate: Plate, data: dict[str, Any], source: str) -> db.Vehicle:
+def _vehicle_from_data(
+    plate: Plate, data: dict[str, Any], source: str, extra: dict[str, Any] | None = None
+) -> db.Vehicle:
     complete = any(data.get(field) for field in STRONG_FIELDS)
+    merged_extra = dict(extra or {})
+    merged_extra["unmapped"] = {
+        k: v for k, v in data.items() if k not in _KNOWN_FIELDS and k != "extra"
+    }
     return db.Vehicle(
         plate=plate.display,
         country=plate.country,
@@ -76,7 +83,7 @@ def _vehicle_from_data(plate: Plate, data: dict[str, Any], source: str) -> db.Ve
         source=source,
         confidence=0.9 if complete else 0.6,
         complete=complete,
-        extra={"unmapped": {k: v for k, v in data.items() if k not in _KNOWN_FIELDS}},
+        extra=merged_extra,
     )
 
 
@@ -126,6 +133,25 @@ def _normalize_fuel(value: str | None) -> str | None:
     return _FUEL_MAP.get(value.strip().lower(), value)
 
 
+def _merge_data(base: dict[str, Any], incoming: dict[str, Any]) -> dict[str, Any]:
+    """Fusiona datos de varias fuentes sin pisar lo bueno con nulos."""
+    merged = dict(base)
+    for key, value in incoming.items():
+        if value is None or value == "":
+            continue
+        if key == "extra" and isinstance(value, dict):
+            current = merged.get("extra") if isinstance(merged.get("extra"), dict) else {}
+            merged["extra"] = {**current, **value}
+        elif key == "status":
+            if merged.get("status") != "baja":
+                merged["status"] = value
+        elif key == "owners_count":
+            merged[key] = max(_to_count(merged.get(key)) or 0, _to_count(value) or 0) or None
+        elif merged.get(key) in (None, ""):
+            merged[key] = value
+    return merged
+
+
 def lookup(
     raw_plate: str,
     country: str = "ES",
@@ -142,6 +168,9 @@ def lookup(
     attempts: list[dict[str, Any]] = []
     captcha_error: CaptchaRequired | None = None
     last_error: str | None = None
+    found_any = False
+    collected: dict[str, Any] = {}
+    sources: list[str] = []
 
     for provider in PROVIDERS:
         if not provider.available():
@@ -176,9 +205,14 @@ def lookup(
         if not result.found:
             continue
 
-        vehicle = _vehicle_from_data(plate, result.data, result.provider)
+        found_any = True
+        sources.append(result.provider)
+        collected = _merge_data(collected, result.data)
         if result.html:
             storage.save_report(plate.normalized, plate.country, result.provider, result.html)
+
+    if found_any:
+        vehicle = _vehicle_from_data(plate, collected, "+".join(sources), collected.get("extra"))
         vehicle = storage.upsert_vehicle(vehicle, plate.normalized)
         return LookupOutcome(
             plate=plate,

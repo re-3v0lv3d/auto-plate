@@ -115,6 +115,7 @@ def config() -> dict[str, Any]:
         "captcha_provider": settings.captcha_provider,
         "pro_api_configured": settings.pro_api_configured,
         "web_provider": settings.allow_web_provider,
+        "historialvehiculo_auto": settings.captcha_provider == "2captcha" and settings.captcha_configured,
     }
 
 

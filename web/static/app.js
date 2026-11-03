@@ -158,13 +158,13 @@ function renderResult(payload) {
     </div>
     ${cells ? `<dl class="grid">${cells}</dl>` : ""}
     ${renderMovements(v)}
-    <div class="merge">
+    ${state.config?.historialvehiculo_auto ? "" : `<div class="merge">
       <p>Fusionar con HistorialVehículo (propietarios, etiqueta ambiental y movimientos):</p>
       <div class="merge-row">
         <input id="merge-url" type="text" placeholder="Pega el enlace del informe: historialvehiculo.com/vehiculo/..." />
         <button type="button" id="merge-btn">Fusionar</button>
       </div>
-    </div>
+    </div>`}
     <p class="dgt-note">
       Baja y titulares solo constan en el informe oficial de la DGT.
       <a href="https://sede.dgt.gob.es/es/vehiculos/informacion-de-vehiculos/informe-de-un-vehiculo/"

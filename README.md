@@ -258,12 +258,22 @@ oficial de la DGT.
 `providers/historialvehiculo.py` añade propietarios, movimientos, etiqueta
 ambiental y datos técnicos desde `api.historialvehiculo.com/v2`.
 
-Su búsqueda por matrícula está protegida con Cloudflare Turnstile, así que el
-flujo es:
+Su búsqueda por matrícula está protegida con Cloudflare Turnstile.
 
-1. Buscas la matrícula a mano en historialvehiculo.com (30 s).
-2. Copias la URL del informe (`/vehiculo/<sha256>`).
-3. La pegas en la ficha de auto-plate → **Fusionar**.
+**Modo automático (flujo idéntico):** con un resolvedor configurado, el
+proveedor resuelve el Turnstile, obtiene el ID y fusiona todo en la misma
+consulta:
+
+```bash
+CAPTCHA_PROVIDER=2captcha CAPTCHA_API_KEY=... ./run.sh
+```
+
+Requiere una clave de 2captcha (Turnstile, ~2-3 USD por 1000 resoluciones).
+Cuando está activo, la UI oculta la caja de fusión manual y todo va por
+matrícula.
+
+**Modo manual (sin coste):** buscas a mano en historialvehiculo.com, copias la
+URL `/vehiculo/<sha256>` y la pegas en la ficha → **Fusionar**.
 
 El endpoint `GET /v2/vehicle/<sha256>` es libre: no hay captcha al leer una
 ficha concreta, solo para obtener el ID desde la matrícula.
